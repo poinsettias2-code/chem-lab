@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026 화학II 수행평가 v6.6.3 Final</title>
+    <style>
+        :root { --primary: #3498db; --bg: #f4f7f6; --dark: #2c3e50; --success: #2ecc71; --error: #e74c3c; }
+        html, body { height: 100%; height: 100dvh; margin: 0; padding: 0; overflow: hidden; background: var(--bg); font-family: 'Malgun Gothic', sans-serif; display: flex; flex-direction: column; touch-action: none; }
+    /* [수정] 페이지 전환 방식: 진행 중인 단계만 화면에 꽉 차게 표시 */
+.page { 
+    display: none;      /* 기본적으로는 숨김 */
+    width: 100%;
+    height: 100%;       /* 부모 요소인 body의 높이를 100% 사용 */
+    flex-direction: column; 
+    overflow-y: auto;   /* 내용이 많으면 내부 스크롤 */
+    box-sizing: border-box; 
+    position: absolute; /* 페이지들을 겹쳐놓고 active만 위로 올림 */
+    top: 0;
+    left: 0;
+    background: var(--bg); /* 페이지 간 겹침 시 비침 방지 */
+}
+
+/* 활성화된 페이지만 화면에 나타남 */
+.page.active { 
+    display: flex; 
+    z-index: 10;        /* 다른 페이지보다 위로 노출 */
+}
+        #theory-page { padding: 15px; gap: 10px; display: flex; flex-direction: column; }
+        .input-group { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+        .info-row { display: flex; gap: 8px; width: 100%; align-items: center; box-sizing: border-box; }
+        #stu-id { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; height: 50px; font-size: 1rem; box-sizing: border-box; min-width: 0; }
+        #stu-name { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; height: 50px; font-size: 1rem; box-sizing: border-box; min-width: 0; }
+        .theory-item { margin-bottom: 12px; border-bottom: 1px dashed #eee; padding-bottom: 10px; }
+        .theory-item label { font-weight: bold; display: block; margin-bottom: 6px; font-size: 0.9rem; color: var(--dark); }
+        .fraction-ui { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .fraction-box { border: 1px solid #ccc; padding: 8px; border-radius: 6px; width: 95%; text-align: center; font-size: 0.9rem; height: 40px; box-sizing: border-box; }
+        .fraction-line { width: 100%; height: 2px; background: #333; }
+        .mission-bar { height: 45px; background: white; padding: 0 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .lab-viewport { flex: 1; display: flex; justify-content: flex-start; align-items: flex-end; padding: 0 10px 10px 10px; background: #ecf0f1; background-image: radial-gradient(#d1d8e0 1px, transparent 1px); background-size: 20px 20px; overflow-x: auto; gap: 15px; position: relative; }
+        .item-slot { flex: 0 0 115px; height: 95%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+        .scale-ui { background: #34495e; color: white; width: 110px; height: 75px; padding: 8px; border-radius: 6px; text-align: center; position: relative; display: flex; flex-direction: column; justify-content: flex-end; box-sizing: border-box; }
+        .scale-display { background: #111; color: #2ecc71; font-family: monospace; font-size: 1rem; padding: 4px; text-align: right; border-radius: 3px; margin-bottom: 5px; }
+        .scale-btns { display: flex; gap: 4px; justify-content: center; }
+        .scale-btns button { font-size: 0.65rem; padding: 3px 6px; cursor: pointer; background: #95a5a6; border: none; border-radius: 3px; font-weight: bold; }
+        .paper-on-scale { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 90px; height: 22px; background: white; border: 1px solid #ccc; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .beaker-ui { width: 75px; height: 100px; border: 2px solid #bdc3c7; border-top: none; border-radius: 2px 10px; position: relative; background: rgba(255,255,255,0.7); overflow: hidden; }
+        .beaker-liquid { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(52, 152, 219, 0.4); transition: height 0.5s, background-color 0.5s; z-index: 1; }
+        .b-powder { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 50px; height: 12px; border-radius: 10px; background: #fff; display: none; z-index: 2; transition: opacity 1s; }
+        .funnel-ui { position: absolute; top: -45px; left: 50%; transform: translateX(-50%); width: 45px; height: 50px; z-index: 150; pointer-events: none; }
+        .funnel-top { width: 45px; height: 25px; background: rgba(255,255,255,0.8); border: 2px solid #95a5a6; clip-path: polygon(0 0, 100% 0, 75% 100%, 25% 100%); }
+        .funnel-stem { width: 6px; height: 25px; background: rgba(255,255,255,0.8); border: 2px solid #95a5a6; border-top: none; margin: -2px auto 0 auto; }
+        .flask-ui { width: 85px; height: 160px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+        .flask-neck { width: 20px; height: 80px; border: 2px solid #bdc3c7; border-bottom: none; background: rgba(255,255,255,0.6); }
+        .flask-body { width: 85px; height: 85px; border: 2px solid #bdc3c7; border-top: none; border-radius: 50%; background: rgba(255,255,255,0.6); margin-top: -10px; overflow: hidden; position: relative; }
+        .flask-liquid { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(52, 152, 219, 0.5); }
+        .bottom-ui { height: 160px; background: white; border-top: 2px solid #bdc3c7; display: flex; flex-direction: column; flex-shrink: 0; }
+        .tab-bar { display: flex; height: 40px; background: var(--dark); }
+        .tab-btn { flex: 1; color: #bdc3c7; border: none; background: none; font-weight: bold; font-size: 0.8rem; }
+        .tab-btn.active { color: white; background: var(--primary); }
+        .drawer-container { flex: 1; overflow-x: auto; display: flex; align-items: center; padding: 0 10px; -webkit-overflow-scrolling: touch; }
+        .drawer { display: none; gap: 10px; height: 100%; align-items: center; }
+        .drawer.active { display: flex; }
+        .tool-card { flex: 0 0 85px; height: 90px; background: #fff; border: 1px solid #eee; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 0.75rem; font-weight: bold; text-align: center; }
+        .tool-card.dragging { position: fixed; z-index: 2000; transform: scale(1.1); opacity: 0.9; pointer-events: none; }
+        #final-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 3000; }
+        #report-page { padding: 20px; box-sizing: border-box; }
+        .report-card { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        .log-item { font-size: 0.85em; line-height: 1.4; margin-bottom: 6px; padding: 6px; border-radius: 4px; border-left: 4px solid #ccc; }
+        .log-pass { background: #e8f5e9; color: #2e7d32; border-left-color: var(--success); }
+        .log-fail { background: #ffebee; color: #c62828; border-left-color: var(--error); }
+/* 워터마크 스타일 */
+.watermark {
+    position: fixed;
+    bottom: 10px;
+    right: 15px;
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.3); /* 아주 연하게 표시 (숫자가 낮을수록 투명) */
+    z-index: 9999;             /* 어떤 요소보다 위에 표시 */
+    pointer-events: none;      /* 마우스 클릭 방해 금지 */
+    user-select: none;         /* 글자 드래그 방지 */
+    font-family: 'Malgun Gothic', sans-serif;
+}
+    </style>
+</head>
+<body>
+
+<div id="theory-page" class="page active">
+    <h3 style="text-align: center; margin-bottom: 15px;">화학II 수행평가: 농도 기술 및 제조</h3>
+    <div class="input-group">
+        <div class="info-row">
+            <input type="number" id="stu-id" placeholder="학번">
+            <input type="text" id="stu-name" placeholder="이름">
+        </div>
+    </div>
+    <div class="input-group">
+        <div class="theory-item"><label>퍼센트 농도(%)</label><div class="fraction-ui"><input type="text" id="p-t" class="fraction-box"><div class="fraction-line"></div><input type="text" id="p-b" class="fraction-box"></div></div>
+        <div class="theory-item"><label>ppm 농도</label><div class="fraction-ui"><input type="text" id="ppm-t" class="fraction-box"><div class="fraction-line"></div><input type="text" id="ppm-b" class="fraction-box"></div></div>
+        <div class="theory-item"><label>몰 농도(M)</label><div class="fraction-ui"><input type="text" id="m-t" class="fraction-box"><div class="fraction-line"></div><input type="text" id="m-b" class="fraction-box"></div></div>
+        <div class="theory-item"><label>몰랄 농도(m)</label><div class="fraction-ui"><input type="text" id="ml-t" class="fraction-box"><div class="fraction-line"></div><input type="text" id="ml-b" class="fraction-box"></div></div>
+    </div>
+    <button onclick="startExperiment()" style="width:100%; padding:15px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold; height:55px;">실험실 입장</button>
+</div>
+
+<div id="lab-page" class="page">
+    <div class="mission-bar">
+        <div id="mission-text" style="font-weight:bold; font-size:0.85rem;"></div>
+        <div id="mw-guide" style="color:var(--primary); font-size:0.8rem;"></div>
+    </div>
+    <div class="lab-viewport" id="viewport">
+        <div class="item-slot" id="slot-1"></div><div class="item-slot" id="slot-2"></div><div class="item-slot" id="slot-3"></div><div class="item-slot" id="slot-4"></div>
+    </div>
+    <div class="bottom-ui">
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="openTab('basic')">도구</button><button class="tab-btn" onclick="openTab('solute')">시약</button><button class="tab-btn" onclick="openTab('flask')">용량</button>
+        </div>
+        <div class="drawer-container">
+            <div class="drawer active" id="tab-basic">
+                <div class="tool-card" id="tool-scale">⚖️<br>전자저울</div><div class="tool-card" id="tool-paper">🧻<br>약포지</div><div class="tool-card" id="tool-beaker">🥛<br>비커</div><div class="tool-card" id="tool-rod">🥢<br>유리막대</div><div class="tool-card" id="tool-funnel">🔽<br>깔때기</div><div class="tool-card" id="tool-water-bulk">🚰<br>증류수</div><div class="tool-card" id="tool-water-wash">💦<br>씻기병</div>
+            </div>
+            <div class="drawer" id="tab-solute">
+                <div class="tool-card" id="sol-염화나트륨">NaCl</div><div class="tool-card" id="sol-설탕">설탕</div><div class="tool-card" id="sol-포도당">포도당</div>
+            </div>
+            <div class="drawer" id="tab-flask">
+                <div class="tool-card" id="flask-100">100mL</div><div class="tool-card" id="flask-250">250mL</div><div class="tool-card" id="flask-500">500mL</div><div class="tool-card" id="flask-1000">1L</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="final-modal">
+    <div class="modal-box" style="background:white; padding:20px; border-radius:15px; text-align:center; width:90%; max-width:320px;">
+        <h4>표선 눈금 조절</h4>
+        <canvas id="final-canvas" width="200" height="240" style="background:#fff; border:1px solid #ddd; margin-bottom:10px;"></canvas>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <button id="btn-bulk" onclick="setMode('bulk')" style="flex:1; padding:10px; border:none; border-radius:5px; background:var(--primary); color:white;">증류수</button>
+            <button id="btn-wash" onclick="setMode('wash')" style="flex:1; padding:10px; border:none; border-radius:5px; background:#ddd;">씻기병</button>
+        </div>
+        <input type="range" id="modal-slider" min="0" max="250" value="0" style="width:100%; height:40px;">
+        <button onclick="finalSubmit()" style="width:100%; padding:15px; background:var(--dark); color:white; border:none; border-radius:10px; font-weight:bold;">제출</button>
+    </div>
+</div>
+
+<div id="report-page" class="page">
+    <div class="report-card" style="text-align: center;"><h2 id="res-info"></h2><div id="res-score" style="font-size: 3rem; font-weight: bold; color: var(--primary);"></div></div>
+    <div class="report-card"><h3>피드백</h3><div id="res-logs"></div></div>
+    <button onclick="location.reload()" style="padding:15px; background:var(--dark); color:white; border:none; border-radius:10px;">다시하기</button>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyJjmpbi3RhqZ779Pdy-PUfCK5xOQTI2md_mWjPB9YgqA_yVl-OjDg3v-v5S3O033cO/exec";
+    const solutesData = { 'sol-염화나트륨': 58.5, 'sol-설탕': 342, 'sol-포도당': 180 };
+    let mission = {}, state = { id:'', name:'', flaskVol:0, liquid:0, currentFill:0, scale:false, power:false, paper:false, tared:false, soluteId:'', actualMass:0, beaker:false, water:0, stirred:false, wash:0, funnel:false, mode:'bulk', sliderMax:0 };
+
+    function startExperiment() {
+        const idInput = document.getElementById('stu-id');
+        const nameInput = document.getElementById('stu-name');
+        if(!idInput || !nameInput) return;
+        state.id = idInput.value.trim();
+        state.name = nameInput.value.trim();
+        if(!state.id || !state.name) return alert("학번과 이름을 입력하세요.");
+        document.getElementById('theory-page').classList.remove('active');
+        document.getElementById('lab-page').classList.add('active');
+        initMission();
+    }
+
+    function initMission() {
+        const keys = Object.keys(solutesData);
+        const sid = keys[Math.floor(Math.random()*keys.length)];
+        const vol = [100, 250, 500, 1000][Math.floor(Math.random()*4)];
+        mission = { id: sid, name: sid.split('-')[1], mw: solutesData[sid], vol: vol, targetMass: (0.1*(vol/1000)*solutesData[sid]) };
+        document.getElementById('mission-text').innerText = `${mission.name} 0.1M ${mission.vol}mL 제조`;
+        document.getElementById('mw-guide').innerText = `MW: ${mission.mw}`;
+    }
+
+    let dragObj = null;
+    function attachDrag(el) {
+        el.removeEventListener('touchstart', handleTS);
+        el.addEventListener('touchstart', handleTS);
+    }
+
+    function handleTS(e) {
+        const idStr = String(this.id);
+        const isPaperRelated = idStr.includes('weighed-solute') || idStr.includes('paper-obj');
+        const isFlaskRelated = idStr.startsWith('flask-');
+
+        if(this.classList.contains('used') && !isPaperRelated && !isFlaskRelated) return;
+        
+        dragObj = this.cloneNode(true); dragObj.id = this.id;
+        dragObj.classList.add('tool-card', 'dragging');
+        document.body.appendChild(dragObj);
+        moveAt(e.touches[0].clientX, e.touches[0].clientY);
+        document.addEventListener('touchmove', onTouchMove, {passive:false});
+        document.addEventListener('touchend', onTouchEnd);
+    }
+
+    function onTouchMove(e) {
+        if(!dragObj) return; e.preventDefault();
+        moveAt(e.touches[0].clientX, e.touches[0].clientY);
+        const slot = document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY)?.closest('.item-slot');
+        if(slot && slot.querySelector('#active-flask') && dragObj.id.startsWith('tool-water')) {
+            if(state.liquid < state.flaskVol) {
+                state.liquid += (dragObj.id.includes('bulk') ? 5.8 : 0.15);
+                state.currentFill = state.liquid; renderF();
+                if(state.liquid >= state.flaskVol * 0.96) openModal();
+            }
+        }
+    }
+
+    function onTouchEnd(e) {
+        if(!dragObj) return;
+        const slot = document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY)?.closest('.item-slot');
+        if(slot) handleInteraction(dragObj.id, slot);
+        if(dragObj && dragObj.parentNode) document.body.removeChild(dragObj); dragObj = null;
+        document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd);
+    }
+    function moveAt(x, y) { if(dragObj) { dragObj.style.left = x - 40 + 'px'; dragObj.style.top = y - 40 + 'px'; } }
+
+    function handleInteraction(tid, slot) {
+        if(tid === 'tool-scale' && !state.scale) {
+            state.scale = true;
+            slot.innerHTML = `<div class="scale-ui"><div class="scale-display" id="sd">OFF</div><div class="scale-btns"><button onclick="pw()">ON</button><button onclick="tr()">Tare</button></div></div>`;
+            document.getElementById(tid).classList.add('used');
+        } else if(tid === 'tool-paper' && state.power && !state.paper) {
+            state.paper = true;
+            const p = document.createElement('div'); p.className='paper-on-scale'; p.id='paper-obj'; p.innerText='약포지'; attachDrag(p);
+            slot.querySelector('.scale-ui').appendChild(p); updateSD(0.48);
+        } else if(tid.startsWith('sol-') && state.paper) {
+            let m = prompt("질량 입력(g):");
+            if(m && !isNaN(m)) {
+                let v = parseFloat(m); state.soluteId = tid;
+                state.actualMass = state.tared ? v : (v - 0.48);
+                updateSD(v); 
+                const p = document.getElementById('paper-obj');
+                if(p) { p.innerText = `용질(${v}g)`; p.id = 'weighed-solute'; attachDrag(p); }
+            }
+        } else if(tid === 'tool-beaker' && !state.beaker) {
+            state.beaker = true;
+            slot.innerHTML = `<div class="beaker-ui" id="active-beaker"><div class="beaker-liquid" id="b-liq" style="height:0%"></div><div class="b-powder" id="b-pwd"></div><div id="rod-obj" style="position:absolute;top:-25px;left:40px;width:4px;height:125px;background:#eee;border:1px solid #ccc;transform:rotate(15deg);display:none;z-index:20;"></div></div>`;
+            attachDrag(slot.querySelector('.beaker-ui')); document.getElementById(tid).classList.add('used');
+        } else if(tid === 'weighed-solute' && slot.querySelector('#active-beaker')) {
+            const pwd = slot.querySelector('#b-pwd'); if(pwd) pwd.style.display = 'block';
+            const scalePaper = document.getElementById('weighed-solute'); if(scalePaper) scalePaper.remove();
+        } else if(tid === 'tool-rod' && state.beaker) {
+            state.stirred = true; const rod = slot.querySelector('#rod-obj'); const pwd = slot.querySelector('#b-pwd');
+            if(rod) rod.style.display = 'block';
+            if(state.water > 0 && pwd && pwd.style.display === 'block') {
+                pwd.style.opacity = '0'; setTimeout(() => { if(pwd) pwd.style.display = 'none'; }, 1000);
+            }
+        } else if(tid.startsWith('tool-water') && state.beaker) {
+            if(state.poured) { state.wash++; state.water = 15; state.poured = false; }
+            else { state.water = Math.min(state.water + 30, 90); }
+            renderB();
+        } else if(tid.startsWith('flask-') && !state.flask) {
+            state.flask = true; state.flaskVol = parseInt(tid.split('-')[1]);
+            slot.innerHTML = `<div class="flask-ui" id="active-flask"><div class="funnel-ui" id="fun-obj" style="display:none;"><div class="funnel-top"></div><div class="funnel-stem"></div></div><div class="flask-neck"></div><div class="flask-body"><div class="flask-liquid" id="f-liq" style="height:0%"></div></div></div>`;
+            document.getElementById(tid).classList.add('used');
+        } else if(tid === 'tool-funnel' && state.flask) {
+            state.funnel = true; const fo = document.getElementById('fun-obj'); if(fo) fo.style.display='block';
+        } else if(tid === 'active-beaker' && state.flask) {
+            state.liquid += state.water; state.currentFill = state.liquid; state.water = 0; state.poured = true; renderB(); renderF();
+            if(state.liquid >= state.flaskVol * 0.96) openModal();
+        }
+    }
+
+    function pw() { state.power = true; updateSD(0); }
+    function tr() { if(state.power) { state.tared = true; updateSD(0); } }
+    function updateSD(v) { const el = document.getElementById('sd'); if(el) el.innerText = v.toFixed(2) + "g"; }
+    
+    function renderB() { 
+        const l = document.getElementById('b-liq'); 
+        if(l) {
+            l.style.height = state.water + "%"; 
+            l.style.backgroundColor = state.wash >= 3 ? "rgba(200, 200, 200, 0.2)" : "rgba(52, 152, 219, 0.4)";
+        }
+    }
+
+    function renderF() { const l = document.getElementById('f-liq'); if(l) l.style.height = (state.liquid/state.flaskVol*100) + "%"; }
+    function openModal() { document.getElementById('final-modal').style.display='flex'; drawM(); }
+    function setMode(m) { state.mode = m; document.getElementById('btn-bulk').style.background = m==='bulk'?'#3498db':'#ddd'; document.getElementById('btn-wash').style.background = m==='wash'?'#3498db':'#ddd'; }
+    document.getElementById('modal-slider').oninput = function() {
+        let diff = this.value - state.sliderMax; if(diff < 0) { this.value = state.sliderMax; return; }
+        state.currentFill += diff * (state.mode==='bulk' ? 1.5 : 0.08); state.sliderMax = parseInt(this.value); drawM();
+    };
+
+    function drawM() {
+        const ctx = document.getElementById('final-canvas').getContext('2d'); ctx.clearRect(0,0,200,240);
+        ctx.strokeStyle="red"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(30,80); ctx.lineTo(170,80); ctx.stroke();
+        let y = 220 - ((state.currentFill-(state.flaskVol*0.96))/(state.flaskVol*0.04))*140;
+        ctx.fillStyle="rgba(52, 152, 219, 0.5)"; ctx.beginPath(); ctx.moveTo(50, 240); ctx.lineTo(50, y-10); ctx.quadraticCurveTo(100, y+10, 150, y-10); ctx.lineTo(150, 240); ctx.fill();
+    }
+
+async function finalSubmit() {
+    let sT = 50, sW = 10, sL = 10, sC = 10; // sW, sL의 기본 점수를 10점으로 설정
+    let logs = [];
+
+    // 1. 상세 로그 최상단에 미션 목표 기록
+    const missionGoal = `[목표: ${mission.name} 0.1M ${mission.vol}mL (목표질량: ${mission.targetMass.toFixed(2)}g)]`;
+    logs.push({t: missionGoal, p: true});
+
+    // 2. 농도 정의 채점
+    const ans = {
+        p:   { t: "용질의질량(g)*100", b: "용액의질량(g)" },   
+        ppm: { t: "용질의질량(g)*1000000", b: "용액의질량(g)" }, 
+        M:   { t: "용질의양(mol)", b: "용액의부피(L)" },       
+        m:   { t: "용질의양(mol)", b: "용매의질량(kg)" }       
+    };
+
+    const u = { 
+        p: document.getElementById('p-t').value + "/" + document.getElementById('p-b').value, 
+        ppm: document.getElementById('ppm-t').value + "/" + document.getElementById('ppm-b').value, 
+        M: document.getElementById('m-t').value + "/" + document.getElementById('m-b').value, 
+        m: document.getElementById('ml-t').value + "/" + document.getElementById('ml-b').value 
+    };
+
+    Object.keys(ans).forEach(k => {
+        let parts = u[k].split('/');
+        let userAnsT = String(parts[0]).replace(/\s/g, ''); 
+        let userAnsB = String(parts[1]).replace(/\s/g, ''); 
+        let isCorrect = false;
+        const correctAnsT = ans[k].t.replace(/\s/g, '');
+        const correctAnsB = ans[k].b.replace(/\s/g, '');
+
+        if (userAnsT === correctAnsT && userAnsB === correctAnsB) {
+            isCorrect = true;
+        } else if ((k === 'M' || k === 'm') && userAnsT === "용질의몰수(mol)" && userAnsB === correctAnsB) {
+            isCorrect = true;
+        }
+
+        if (!isCorrect) {
+            sT -= 10;
+            logs.push({ t: `농도 정의 오류 (${k})`, p: false });
+        } else {
+            logs.push({ t: `농도 정의 정확 (${k})`, p: true });
+        }
+    });
+
+    // 3. 칭량 상세 분석 (기본 10점 / 성공 20점)
+    const massDiff = Math.abs(state.actualMass - mission.targetMass);
+    const selectedSoluteName = state.soluteId ? state.soluteId.split('-')[1] : "미선택";
+
+    if (state.tared) {
+        logs.push({t: "칭량: 전자저울 영점 조절(Tare) 이행", p: true});
+    } else {
+        logs.push({t: "칭량: 영점 조절 미이행 (오차 원인)", p: false});
+    }
+
+    if (state.soluteId !== mission.id) {
+        sW = 10; // 실패 시 기본점수 10
+        logs.push({t: `칭량: 용질 선택 오류 (목표: ${mission.name} / 학생선택: ${selectedSoluteName})`, p: false});
+    } else if (massDiff > 0.05) {
+        sW = 10; // 실패 시 기본점수 10
+        logs.push({t: `칭량: 질량 측정 오차 발생 (오차: ${massDiff.toFixed(2)}g)`, p: false});
+    } else if (!state.tared) {
+        sW = 10; // 실패 시 기본점수 10
+        logs.push({t: "칭량: 질량은 정확하나 영점 조절 미흡으로 감점", p: false});
+    } else {
+        sW = 20; // 성공 시 20점
+        logs.push({t: "칭량: 용질 선택 및 질량 측정 완벽", p: true});
+    }
+
+    // 4. 제조 세부 항목 분석 (기본 10점 / 성공 20점)
+    const volErr = Math.abs(state.currentFill - state.flaskVol) / state.flaskVol;
+    
+    if(state.stirred && state.funnel && state.wash >= 3 && volErr <= 0.002) {
+        sL = 20; // 성공 시 20점
+        logs.push({t: "제조: 모든 필수 절차 완벽 이행", p: true});
+    } else {
+        sL = 10; // 실패 시 기본점수 10
+        let missing = [];
+        if(!state.stirred) missing.push("유리막대");
+        if(!state.funnel) missing.push("깔때기");
+        if(state.wash < 3) missing.push("씻기병 세척");
+        if(volErr > 0.002) missing.push("표선 조절");
+        logs.push({t: `제조: 일부 절차 누락 (${missing.join(', ')})`, p: false});
+    }
+
+    let total = sT + sW + sL + sC;
+
+    // 5. 결과 화면 및 데이터 전송
+    const payload = {
+        timestamp: new Date().toLocaleString(),
+        id: state.id,
+        name: state.name,
+        theory_p: u.p,
+        theory_ppm: u.ppm,
+        theory_M: u.M,
+        theory_m: u.m,
+        actualMass: state.actualMass,
+        isSuccess: (sL === 20 ? "성공" : "실패"),
+        score_theory: sT,
+        score_weigh: sW,
+        score_lab: sL,
+        score_clean: sC,
+        score_total: total,
+        details: logs.map(x => x.t).join(' | ') 
+    };
+
+    document.getElementById('final-modal').style.display = 'none'; 
+    document.getElementById('lab-page').style.display = 'none'; 
+    document.getElementById('report-page').classList.add('active');
+    document.getElementById('res-info').innerText = `${state.id} ${state.name}`;
+    document.getElementById('res-score').innerText = `${total}점`;
+    document.getElementById('res-logs').innerHTML = logs.map(x => `<div class="log-item ${x.p ? 'log-pass' : 'log-fail'}">${x.t}</div>`).join('');
+
+    fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+}    function openTab(id) { 
+        document.querySelectorAll('.drawer').forEach(d => d.classList.remove('active')); 
+        document.getElementById('tab-'+id).classList.add('active');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+    document.querySelectorAll('.tool-card').forEach(attachDrag);
+</script>
+<div class="watermark">ⓒ 2026. [오도원] @ [김해가야고등학교]. All rights reserved.</div>
+</body>
+</html>
