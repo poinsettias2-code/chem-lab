@@ -80,6 +80,21 @@
     user-select: none;         /* 글자 드래그 방지 */
     font-family: 'Malgun Gothic', sans-serif;
 }
+/* 웹앱 전체의 텍스트 선택을 금지 */
+body {
+  -webkit-user-select: none;  /* Safari/Chrome 모바일 */
+  -moz-user-select: none;     /* Firefox */
+  -ms-user-select: none;      /* IE/Edge */
+  user-select: none;          /* 표준 방식 */
+}
+
+/* 단, 학생들이 숫자를 '직접 타이핑'해야 하는 입력창(input)은 제외 */
+input, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
     </style>
 </head>
 <body>
@@ -436,6 +451,63 @@
     canvas.addEventListener('touchend', handleLeave);
 
     targetVol = 15; animate();
+document.addEventListener("visibilitychange", function() {
+  if (document.hidden) {
+    // 1. 학생이 화면을 벗어났을 때 실행할 코드
+    alert("❌ 경고: 시험 중 화면을 이탈했습니다. 시뮬레이터를 종료합니다.");
+    
+    // 2. 시뮬레이터 초기화 또는 데이터 삭제
+    resetSimulator(); 
+    
+    // 3. (선택 사항) 선생님 스프레드시트로 이탈 기록 전송
+    logCheatingAttempt(); 
+  } else {
+    // 다시 돌아왔을 때의 처리 (필요하다면)
+    console.log("화면으로 복귀함");
+  }
+});
+
+function resetSimulator() {
+  // 시뮬레이터 상태를 초기화하고 강제로 메인 화면으로 이동시키는 로직
+  window.location.reload(); // 가장 단순하게는 페이지 새로고침
+}
+window.addEventListener("blur", function() {
+  // 웹앱이 포커스를 잃었을 때 (예: 분할 화면으로 다른 앱을 켰을 때)
+  alert("⚠️ 브라우저 포커스를 벗어났습니다. 부정행위로 간주될 수 있습니다.");
+  resetSimulator();
+});
+// 1. 붙여넣기(Paste) 절대 차단
+document.addEventListener('paste', function (e) {
+  e.preventDefault(); // 붙여넣기 동작 취소
+  alert('🚫 복사한 내용은 붙여넣을 수 없습니다. 직접 입력하세요!');
+});
+
+// 2. 복사(Copy) 및 잘라내기(Cut) 차단
+document.addEventListener('copy', function (e) {
+  e.preventDefault();
+});
+document.addEventListener('cut', function (e) {
+  e.preventDefault();
+});
+
+// 3. 단축키(Ctrl+C, Ctrl+V) 및 개발자 도구 차단
+document.addEventListener('keydown', function (e) {
+  // Ctrl+C, Ctrl+V, Ctrl+X 차단 (Mac의 경우 MetaKey 포함)
+  if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x'].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+    alert('⚠️ 단축키를 사용할 수 없습니다.');
+  }
+  
+  // (보너스) F12나 Ctrl+Shift+I로 개발자 도구 켜서 꼼수 부리는 것 방지
+  if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i')) {
+    e.preventDefault();
+  }
+});
+
+// 4. 마우스 우클릭 메뉴(컨텍스트 메뉴) 차단
+document.addEventListener('contextmenu', function (e) {
+  e.preventDefault();
+});
 </script>
 <div class="watermark">ⓒ 2026. [오도원] @ [김해가야고등학교]. All rights reserved.</div>
 </body>
